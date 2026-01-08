@@ -57,9 +57,12 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
      * @param clientId - The unique identifier for the WebSocket client.
      * @param data - The associated data for the client (e.g., user info, connection details).
      */
-    async addClient(clientId: string, data: any): Promise<void> {
-        await this.redisClient.hset('ws:clients', clientId, JSON.stringify(data));
-        await this.redisClient.sadd('ws:client-ids', clientId);
+    async addClient(clientId: string, data: { serverId: string; connectedAt: string }) {
+        await this.redisClient.multi()
+            .hset('ws:clients', clientId, JSON.stringify(data))
+            .sadd('ws:client-ids', clientId)
+            .sadd(`ws:server:${data.serverId}`, clientId)
+            .exec();
     }
 
     /**
@@ -67,9 +70,17 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
      * Deletes client data from the hash and removes the client ID from the tracking set.
      * @param clientId - The unique identifier for the WebSocket client to remove.
      */
-    async removeClient(clientId: string): Promise<void> {
-        await this.redisClient.hdel('ws:clients', clientId);
-        await this.redisClient.srem('ws:client-ids', clientId);
+    async removeClient(clientId: string) {
+        const raw = await this.redisClient.hget('ws:clients', clientId);
+        if (!raw) return;
+
+        const data = JSON.parse(raw);
+
+        await this.redisClient.multi()
+            .hdel('ws:clients', clientId)
+            .srem('ws:client-ids', clientId)
+            .srem(`ws:server:${data.serverId}`, clientId)
+            .exec();
     }
 
     /**
