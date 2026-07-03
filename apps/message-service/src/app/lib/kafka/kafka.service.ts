@@ -9,6 +9,7 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     this.logger.log('Connecting Kafka client...');
+    this.client.subscribeToResponseOf('is.server.exists');
     await this.client.connect();
     this.logger.log('Kafka client connected ✅');
   }
@@ -20,13 +21,13 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
   }
 
   // Request-response
-  async send<T = any>(topic: string, message: any) {
+  send<T = any>(topic: string, message: any) {
     this.logger.debug(`Sending message to topic "${topic}"`, message);
     return this.client.send<T, any>(topic, message);
   }
 
   // Fire-and-forget
-  async emit(topic: string, message: any) {
+  emit(topic: string, message: any) {
     this.logger.debug(`Emitting event to topic "${topic}"`, message);
     return this.client.emit<any>(topic, message);
   }
