@@ -63,4 +63,10 @@ export class ServerController {
   async isServerExists(data: IsServerExistsDto) {
     return this.queryService.isServerExists(data);
   }
+
+  @MessagePattern('validate.server')
+  async validateServer(data: { serverId: string }) {
+    return this.queryService.validateServer(data.serverId);
+  }
+
 }

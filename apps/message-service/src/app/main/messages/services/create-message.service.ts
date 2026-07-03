@@ -64,6 +64,13 @@ export class MessageService {
         },
       });
 
+      // Emit message created event to event service via Kafka
+      this.kafkaService.emit('message:created', {
+        serverId: payload.serverId,
+        channelId: payload.channelId,
+        payload: data,
+      });
+
       return {
         data,
         message: 'Message created successfully',

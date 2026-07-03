@@ -35,4 +35,29 @@ export class QueryService {
       );
     }
   }
-}
+
+  public async validateServer(serverId: string): PromiseMapResponseGeneric<unknown> {
+    try {
+      const data = await this.dbService.server.findUnique({
+        where: { id: serverId },
+        select: { id: true, name: true },
+      });
+
+      if (!data) {
+        return {
+          data: null,
+          message: 'Server not found',
+          success: false,
+        };
+      }
+
+      return {
+        data,
+        message: 'Server exists',
+        success: true,
+      };
+    } catch (error) {
+      throw new BadRequestException('Failed to validate server: ' + String(error));
+    }
+  }
+
