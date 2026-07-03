@@ -15,18 +15,17 @@ datasource db {
 }
 
 model FileInstance {
-  id         String   @id @default(uuid())
-  fileId     String   @unique
-  path       String
-  createdAt  DateTime @default(now())
-  bucket     String
-  type       FileType
-  uploadedBy String   @db.Uuid
-}
-
-enum FileType {
-  IMAGE
-  VIDEO
-  AUDIO
-  DOCUMENT
+  id            String   @id @default(uuid())
+  fileId        String   @unique
+  originalName  String
+  s3Key         String
+  s3Url         String
+  messageId     String   @db.Uuid
+  serverId      String   @db.Uuid
+  channelId     String   @db.Uuid
+  fileSize      Int
+  contentType   String
+  uploadedBy    String?  @db.Uuid
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

@@ -1,44 +1,73 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsUUID, IsEnum, IsNotEmpty } from 'class-validator';
-import { FileType } from '../../../../generated/prisma';
+import { IsString, IsUUID, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
 
 export class CreateFileInstanceDto {
   @ApiProperty({
-    description: 'Unique identifier of the file (usually an internal ID)',
-    example: 'file_3f2b12a8-4ad9-4b5f-a9de-f234cd567890',
+    description: 'Original file name',
+    example: 'document.pdf',
   })
   @IsString()
   @IsNotEmpty()
-  fileId: string;
+  originalName: string;
 
   @ApiProperty({
-    description: 'Path or key of the file in storage (e.g., S3 key)',
-    example: 'uploads/images/2025/10/profile_123.jpg',
+    description: 'S3 key for the uploaded file',
+    example: 'files/uuid/document.pdf',
   })
   @IsString()
   @IsNotEmpty()
-  path: string;
+  s3Key: string;
 
   @ApiProperty({
-    description: 'Bucket name where the file is stored',
-    example: 'user-uploads',
+    description: 'S3 URL of the file',
+    example: 's3://bucket/files/uuid/document.pdf',
   })
   @IsString()
   @IsNotEmpty()
-  bucket: string;
+  s3Url: string;
 
   @ApiProperty({
-    description: 'Type of the file (e.g., IMAGE, VIDEO, DOCUMENT)',
-    enum: FileType,
-    example: 'IMAGE',
-  })
-  @IsEnum(FileType)
-  type: FileType;
-
-  @ApiProperty({
-    description: 'UUID of the user who uploaded the file',
-    example: 'f2f2bba8-8b10-4f8b-8de7-4a1c1f0de123',
+    description: 'Message ID associated with this file',
   })
   @IsUUID()
-  uploadedBy: string;
+  @IsNotEmpty()
+  messageId: string;
+
+  @ApiProperty({
+    description: 'Server ID where file is used',
+  })
+  @IsUUID()
+  @IsNotEmpty()
+  serverId: string;
+
+  @ApiProperty({
+    description: 'Channel ID where file is used',
+  })
+  @IsUUID()
+  @IsNotEmpty()
+  channelId: string;
+
+  @ApiProperty({
+    description: 'File size in bytes',
+  })
+  @IsNumber()
+  @IsNotEmpty()
+  fileSize: number;
+
+  @ApiProperty({
+    description: 'MIME type of the file',
+    example: 'application/pdf',
+  })
+  @IsString()
+  @IsNotEmpty()
+  contentType: string;
+
+  @ApiProperty({
+    description: 'User ID who uploaded the file (optional)',
+    required: false,
+  })
+  @IsUUID()
+  @IsOptional()
+  uploadedBy?: string;
 }
+
