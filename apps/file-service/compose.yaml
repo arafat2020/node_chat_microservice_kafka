@@ -5,7 +5,7 @@ services:
     container_name: file-db
     restart: unless-stopped
     ports:
-      - "5435:5432"   # host:container
+      - "5436:5432"   # host:container
     environment:
       POSTGRES_USER: file_user
       POSTGRES_PASSWORD: supersecret

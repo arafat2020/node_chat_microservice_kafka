@@ -3,4 +3,4 @@ services:
     image: redis:alpine
     container_name: redis_node_chat_event
     ports:
-      - '6379:6379'
+      - '6380:6379'
