@@ -15,11 +15,24 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     this.logger.debug('Connecting Kafka client...');
+    // Auth topics
     this.client.subscribeToResponseOf('user.signin');
     this.client.subscribeToResponseOf('user.signup');
     this.client.subscribeToResponseOf('user.verifyToken');
+    // Server topics
     this.client.subscribeToResponseOf('create.server');
     this.client.subscribeToResponseOf('delete.server');
+    // Message topics
+    this.client.subscribeToResponseOf('create.message');
+    this.client.subscribeToResponseOf('get.message');
+    this.client.subscribeToResponseOf('list.message');
+    this.client.subscribeToResponseOf('update.message');
+    this.client.subscribeToResponseOf('delete.message');
+    // File topics
+    this.client.subscribeToResponseOf('upload.file');
+    this.client.subscribeToResponseOf('download.file');
+    this.client.subscribeToResponseOf('delete.file');
+    this.client.subscribeToResponseOf('get.file.metadata');
     await this.client.connect();
     this.logger.log('Kafka client connected ✅');
   }
