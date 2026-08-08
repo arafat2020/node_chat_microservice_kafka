@@ -60,4 +60,4 @@ export class QueryService {
       throw new BadRequestException('Failed to validate server: ' + String(error));
     }
   }
-
+}

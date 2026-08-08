@@ -3,6 +3,7 @@ import { MessagePattern } from '@nestjs/microservices';
 import { MetaService } from './services/meta.service';
 import { ServeService } from './services/serve.service';
 import { S3Service } from './services/s3.service';
+import { CreateFileInstanceDto } from './dto/file.dto';
 
 @Controller()
 export class FileController {
@@ -14,27 +15,72 @@ export class FileController {
     private readonly s3Service: S3Service,
   ) {}
 
+  @MessagePattern('get.presigned.upload.url')
+  async getPresignedUploadUrl(data: {
+    fileKey: string;
+    contentType: string;
+    expiresIn?: number;
+  }) {
+    this.logger.debug('Received get.presigned.upload.url event', data);
+    try {
+      const result = await this.s3Service.getPresignedUploadUrl(
+        data.fileKey,
+        data.contentType,
+        data.expiresIn || 3600,
+      );
+
+      return {
+        success: true,
+        data: result,
+        message: 'Presigned upload URL generated successfully',
+      };
+    } catch (error) {
+      this.logger.error('Failed to generate presigned upload URL:', error);
+      return {
+        success: false,
+        message: `Failed to generate upload URL: ${String(error)}`,
+      };
+    }
+  }
+
+  @MessagePattern('save.file.metadata')
+  async saveFileMetadata(data: CreateFileInstanceDto) {
+    this.logger.debug('Received save.file.metadata event', data);
+    try {
+      const result = await this.metaService.saveFileMetadata(data);
+      return result;
+    } catch (error) {
+      this.logger.error('Failed to save file metadata:', error);
+      return {
+        success: false,
+        message: `Failed to save metadata: ${String(error)}`,
+      };
+    }
+  }
+
   @MessagePattern('upload.file')
   async uploadFile(data: {
     fileKey: string;
     fileBuffer: Buffer;
     contentType: string;
-    messageId: string;
-    serverId: string;
-    channelId: string;
+    fileId: string;
+    originalName: string;
+    messageId?: string;
+    serverId?: string;
+    channelId?: string;
+    uploadedBy?: string;
   }) {
     this.logger.debug('Received upload.file event', data);
     try {
-      // Upload to S3
       const s3Result = await this.s3Service.uploadFile(
         data.fileKey,
         data.fileBuffer,
         data.contentType,
       );
 
-      // Save metadata to database
       const metadata = await this.metaService.saveFileMetadata({
-        originalName: data.fileKey,
+        fileId: data.fileId,
+        originalName: data.originalName || data.fileKey,
         s3Key: s3Result.key,
         s3Url: s3Result.url,
         messageId: data.messageId,
@@ -42,6 +88,7 @@ export class FileController {
         channelId: data.channelId,
         fileSize: data.fileBuffer.length,
         contentType: data.contentType,
+        uploadedBy: data.uploadedBy,
       });
 
       return {

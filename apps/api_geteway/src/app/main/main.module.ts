@@ -3,6 +3,7 @@ import { AuthModule } from "./auth/auth.module";
 import { ServerModule } from "./server/server.module";
 import { MessageModule } from "./message/message.module";
 import { FileModule } from "./file/file.module";
+import { ChannelModule } from "./channel/channel.module";
 
 @Module({
     imports: [
@@ -10,6 +11,7 @@ import { FileModule } from "./file/file.module";
         ServerModule,
         MessageModule,
         FileModule,
+        ChannelModule,
     ],
 })
 export class MainModule {}

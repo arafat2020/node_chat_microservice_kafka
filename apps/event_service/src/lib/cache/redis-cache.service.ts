@@ -18,28 +18,19 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
      * for publish/subscribe functionality to avoid blocking the main client.
      */
     async onModuleInit() {
+        const host = process.env.REDIS_HOST || 'localhost';
+        const port = Number(process.env.REDIS_PORT) || 6379;
+
         try {
-            this.redisClient = new Redis({
-                host: 'localhost',
-                port: 6379,
-            });
-
-            // Separate connections for pub/sub
-            this.redisSub = new Redis({
-                host: 'localhost',
-                port: 6379,
-            });
-
-            this.redisPub = new Redis({
-                host: 'localhost',
-                port: 6379,
-            });
-            this.logger.verbose('Redis connected');
+            this.redisClient = new Redis({ host, port });
+            this.redisSub = new Redis({ host, port });
+            this.redisPub = new Redis({ host, port });
+            this.logger.verbose(`Redis connected to ${host}:${port}`);
         } catch (error) {
             this.logger.error('Error connecting to Redis', error);
         }
-
     }
+
 
     /**
      * Closes all Redis connections gracefully when the module is destroyed.

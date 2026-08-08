@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -10,17 +10,26 @@ import { Server, WebSocket } from "ws";
 import { RedisCacheService } from "../../lib/cache/redis-cache.service";
 import { KafkaService } from "../../lib/kafka/kafka.service";
 import { firstValueFrom } from "rxjs";
-import { OnModuleInit } from "@nestjs/common";
 
 interface ExtendedWebSocket extends WebSocket {
   id?: string;
   serverId?: string;
+  userId?: string;
 }
 
 interface ServerExistsResponse {
   success?: boolean;
   message?: string;
   data?: unknown;
+}
+
+interface TokenVerifyResponse {
+  success?: boolean;
+  message?: string;
+  data?: {
+    sub?: string;
+    email?: string;
+  };
 }
 
 @Injectable()
@@ -36,7 +45,7 @@ export class MessageGateway
   server: Server;
 
   private logger = new Logger(MessageGateway.name);
-  private localClients: Map<string, any> = new Map();
+  private localClients: Map<string, ExtendedWebSocket> = new Map();
 
   constructor(
     private redisService: RedisCacheService,
@@ -44,7 +53,6 @@ export class MessageGateway
   ) {}
 
   onModuleInit() {
-    // Subscribe to Redis broadcasts for cross-instance messaging
     this.redisService.subscribe("ws:broadcast", (packet) => {
       this.broadcastLocal(packet.serverId, packet.payload);
     });
@@ -72,18 +80,46 @@ export class MessageGateway
     }
   }
 
+  private async verifyToken(token: string): Promise<{ sub?: string } | null> {
+    try {
+      const response = await firstValueFrom(
+        this.kafkaService.send<TokenVerifyResponse>("user.verifyToken", token),
+      );
+
+      if (!response || !response.success || !response.data) {
+        return null;
+      }
+
+      return response.data;
+    } catch (error) {
+      this.logger.error("Token verification failed over Kafka RPC", error);
+      return null;
+    }
+  }
+
   async handleConnection(client: ExtendedWebSocket, ...args: any[]): Promise<any> {
-    const serverId = new URLSearchParams((args[0] as any).url.split("?")[1]).get(
-      "serverId",
-    );
+    const urlParams = new URLSearchParams((args[0] as any).url.split("?")[1]);
+    const serverId = urlParams.get("serverId");
+    const token = urlParams.get("token");
 
     if (!serverId || typeof serverId !== "string") {
       this.logger.warn(`Rejected connection: missing serverId`);
-      client.close();
+      client.close(1008, "Missing serverId");
       return;
     }
 
-    // Validate that the server exists via Kafka RPC
+    // Optional token verification if provided
+    let userId: string | undefined = undefined;
+    if (token) {
+      const authUser = await this.verifyToken(token);
+      if (!authUser || !authUser.sub) {
+        this.logger.warn(`Rejected connection: invalid JWT token`);
+        client.close(1008, "Invalid authentication token");
+        return;
+      }
+      userId = authUser.sub;
+    }
+
     const serverExists = await this.validateServer(serverId);
     if (!serverExists) {
       this.logger.warn(`Rejected connection: server ${serverId} does not exist`);
@@ -94,6 +130,7 @@ export class MessageGateway
     const clientId = uuidv4();
     client.id = clientId;
     client.serverId = serverId;
+    client.userId = userId;
     this.localClients.set(clientId, client);
 
     await this.redisService.addClient(clientId, {
@@ -103,21 +140,21 @@ export class MessageGateway
 
     const count = await this.redisService.getClientCount();
     this.logger.debug(
-      `Client ${clientId} connected to server ${serverId}. Total: ${count}`,
+      `Client ${clientId} (User: ${userId || 'anonymous'}) connected to server ${serverId}. Total: ${count}`,
     );
 
-    // Send welcome message to the client
     client.send(
       JSON.stringify({
         event: "connection:success",
         clientId,
         serverId,
-        message: "Connected to message gateway",
+        userId,
+        message: "Connected to real-time message gateway",
       }),
     );
   }
 
-  async handleDisconnect(client: any): Promise<any> {
+  async handleDisconnect(client: ExtendedWebSocket): Promise<any> {
     if (client.id) {
       this.localClients.delete(client.id);
       await this.redisService.removeClient(client.id);
