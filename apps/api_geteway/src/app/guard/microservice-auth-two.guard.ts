@@ -2,10 +2,8 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
-  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { catchError, firstValueFrom, throwError, timeout } from 'rxjs';
 import { KafkaService } from '../lib/kafka.service';
 import { AuthResponse } from '@node-chat/shared';
 import { kafkaRequest } from '../utils/kafkaRequest';
