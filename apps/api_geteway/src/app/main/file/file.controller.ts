@@ -52,6 +52,7 @@ export class FileController {
       messageId?: string;
       serverId?: string;
       channelId?: string;
+      uploadedBy?: string;
     },
     @Req() req: Request & { user: AuthMetaData },
   ) {

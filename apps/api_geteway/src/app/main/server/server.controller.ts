@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { KafkaService } from '../../lib/kafka.service';
 import {
   AuthMetaData,
@@ -64,7 +64,7 @@ export class ServerController {
     @Body() rawData: GetInvolveServerDto,
     @Req() req: Request & { user: AuthMetaData }
   ) {
-    rawData.userId = req.user.sub;
+    rawData.id = req.user.sub;
     return kafkaRequest(this.kafkaService, 'get.involved.server', rawData);
   }
 
